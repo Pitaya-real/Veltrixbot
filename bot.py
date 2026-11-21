@@ -8,6 +8,7 @@ import time
 import aiohttp
 import random
 import string
+from pymongo import MongoClient
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -21,6 +22,21 @@ if not TOKEN:
         "Thiếu biến môi trường DISCORD_TOKEN! "
         "Hãy tạo file .env (khi chạy local) hoặc đặt DISCORD_TOKEN trong Environment Variables."
     )
+
+MONGO_URI = os.getenv("MONGO_URI")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nexus_core")
+
+if not MONGO_URI:
+    raise RuntimeError(
+        "Thiếu biến môi trường MONGO_URI! "
+        "Hãy thêm MONGO_URI vào file .env (khi chạy local) hoặc Environment Variables trên Render."
+    )
+
+mongo_client = MongoClient(MONGO_URI)
+mongo_db = mongo_client[MONGO_DB_NAME]
+state_col = mongo_db["state"]
+stocks_col = mongo_db["stocks"]
+
 BOT_NAME = "EM KHÔNG THÍCH ANH!!"
 CREATOR_NAME = "Tên Của Bạn"  # Tên người tạo hiển thị trên toàn bộ hệ thống
 ADMIN_ROLE_NAME = "Admin"
