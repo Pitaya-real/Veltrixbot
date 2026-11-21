@@ -83,66 +83,74 @@ SHOP_ITEMS = {
 stock_lock = asyncio.Lock()
 
 # ================= XỬ LÝ DATABASE & KHO FILE .TXT =================
+STATE_DOC_ID = "main_state"
+
+def _default_state() -> dict:
+    return {"users": {}, "giveaways": {}}
+
 def ensure_stock_files():
     os.makedirs(STOCK_DIR, exist_ok=True)
     for item_key in SHOP_ITEMS:
-        path = get_stock_path(item_key)
-        if not os.path.exists(path):
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("")
-
-def get_stock_path(item_key: str) -> str:
-    return os.path.join(STOCK_DIR, f"{item_key}.txt")
+        doc = stocks_col.find_one({"_id": item_key})
+        if not doc:
+            stocks_col.insert_one({"_id": item_key, "items": []})
 
 def get_stock_count(item_key: str) -> int:
-    path = get_stock_path(item_key)
-    if not os.path.exists(path):
+    doc = stocks_col.find_one({"_id": item_key}, {"items": 1})
+    if not doc:
         return 0
-    with open(path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
-    return len(lines)
+    return len(doc.get("items", []))
 
 def add_stock_items(item_key: str, raw_text: str) -> int:
-    path = get_stock_path(item_key)
     new_lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     if not new_lines:
         return 0
-    with open(path, "a", encoding="utf-8") as f:
-        for line in new_lines:
-            f.write(line + "\n")
+    stocks_col.update_one(
+        {"_id": item_key},
+        {"$push": {"items": {"$each": new_lines}}},
+        upsert=True
+    )
     return len(new_lines)
 
 async def pop_stock_item(item_key: str):
-    """Lấy dòng đầu tiên từ file .txt, xóa dòng đó và trả về (item_code, remaining_count)"""
+    """Lấy phần tử đầu tiên từ kho trên MongoDB, xóa phần tử đó và trả về (item_code, remaining_count)"""
     async with stock_lock:
-        path = get_stock_path(item_key)
-        if not os.path.exists(path):
-            return None, 0
-        with open(path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f.readlines() if line.strip()]
-        if not lines:
-            return None, 0
+        def _pop_sync():
+            doc = stocks_col.find_one({"_id": item_key})
+            if not doc or not doc.get("items"):
+                return None, 0
+            items = list(doc["items"])
+            purchased_item = items[0]
+            remaining_items = items[1:]
+            stocks_col.update_one(
+                {"_id": item_key},
+                {"$set": {"items": remaining_items}}
+            )
+            return purchased_item, len(remaining_items)
 
-        purchased_item = lines[0]
-        remaining_lines = lines[1:]
-
-        with open(path, "w", encoding="utf-8") as f:
-            if remaining_lines:
-                f.write("\n".join(remaining_lines) + "\n")
-            else:
-                f.write("")
-
-        return purchased_item, len(remaining_lines)
+        return await asyncio.to_thread(_pop_sync)
 
 def load_db():
-    if not os.path.exists(DB_FILE):
-        return {"users": {}}
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    doc = state_col.find_one({"_id": STATE_DOC_ID})
+    if not doc:
+        data = _default_state()
+        state_col.insert_one({"_id": STATE_DOC_ID, **data})
+        return data
+    return {
+        "users": doc.get("users", {}),
+        "giveaways": doc.get("giveaways", {})
+    }
 
 def save_db(data):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    payload = {
+        "users": data.get("users", {}),
+        "giveaways": data.get("giveaways", {})
+    }
+    state_col.update_one(
+        {"_id": STATE_DOC_ID},
+        {"$set": payload},
+        upsert=True
+    )
 
 def get_user(user_id):
     db = load_db()
