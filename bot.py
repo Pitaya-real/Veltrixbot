@@ -8,6 +8,7 @@ import time
 import aiohttp
 import random
 import string
+from keep_alive import keep_alive
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -1069,4 +1070,5 @@ async def setup_verify(interaction: discord.Interaction):
     await interaction.channel.send(embed=embed, view=VerifyPanelView())
     await interaction.response.send_message("✅ Đã gửi bảng Verify!", ephemeral=True)
 
+keep_alive()
 bot.run(TOKEN)
