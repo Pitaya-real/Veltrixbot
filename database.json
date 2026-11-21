@@ -1,0 +1,45 @@
+{
+    "users": {
+        "983710867545804850": {
+            "balance": 0,
+            "total_deposited": 10000,
+            "inventory": [
+                "[Key VIP 24 Giờ] 1000"
+            ]
+        }
+    },
+    "giveaways": {
+        "1573694887923290134": {
+            "gw_id": "GW-WJBKAU",
+            "channel_id": 1573679715380764702,
+            "end_timestamp": 1795268557,
+            "prize": "1",
+            "winners_count": 1,
+            "host_id": 983710867545804850,
+            "participants": [
+                983710867545804850
+            ],
+            "reroll_count": 2,
+            "last_winners": [
+                983710867545804850
+            ],
+            "ended": true
+        },
+        "1573695243432362067": {
+            "gw_id": "GW-Y6M9QZ",
+            "channel_id": 1573679715380764702,
+            "end_timestamp": 1795268766,
+            "prize": "2",
+            "winners_count": 1,
+            "host_id": 983710867545804850,
+            "participants": [
+                983710867545804850
+            ],
+            "reroll_count": 0,
+            "last_winners": [
+                983710867545804850
+            ],
+            "ended": true
+        }
+    }
+}
